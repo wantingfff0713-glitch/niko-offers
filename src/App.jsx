@@ -434,4 +434,234 @@ export default function App() {
       )}
     </div>
   );
+}function AddOfferModal({ onClose, onSave }) {
+  const [step, setStep] = useState("input");
+  const [emailText, setEmailText] = useState("");
+  const [parsed, setParsed] = useState(null);
+  const [error, setError] = useState("");
+  const [files, setFiles] = useState([]);
+  const [form, setForm] = useState({
+    property: { address:"", postcode:"", weeklyRent:"", monthlyRent:"", startDate:"", tenancyType:"Monthly Rolling", reservationFee:"", deposit:"" },
+    tenant:   { name:"", email:"", phone:"" },
+    agent:    { name:"", company:"", email:"", phone:"" },
+    notes: ""
+  });
+
+  async function handleParse() {
+    if (!emailText.trim()) { setError("Please paste the email content first."); return; }
+    setError(""); setStep("parsing");
+    try {
+      const result = await parseEmailWithAI(emailText);
+      setParsed(result);
+      setForm({
+        property: {
+          address: result.property?.address || "", postcode: result.property?.postcode || "",
+          weeklyRent: result.property?.weeklyRent || "", monthlyRent: result.property?.monthlyRent || "",
+          startDate: result.property?.startDate || "", tenancyType: result.property?.tenancyType || "Monthly Rolling",
+          reservationFee: result.property?.reservationFee || "", deposit: result.property?.deposit || "",
+        },
+        tenant: { name: result.tenant?.name || "", email: result.tenant?.email || "", phone: result.tenant?.phone || "" },
+        agent:  { name: result.agent?.name  || "", company: result.agent?.company || "", email: result.agent?.email || "", phone: result.agent?.phone || "" },
+        notes: result.notes || ""
+      });
+      setStep("review");
+    } catch {
+      setError("Failed to parse. Please fill in manually.");
+      setStep("input");
+    }
+  }
+
+  function updateField(section, field, value) {
+    setForm(f => ({ ...f, [section]: { ...f[section], [field]: value } }));
+  }
+
+  function handleSave() {
+    if (!form.property.address) { setError("Address is required."); return; }
+    onSave({
+      id: Date.now().toString(), createdAt: new Date().toISOString(), status: "Offer Accepted",
+      property: { ...form.property, weeklyRent: form.property.weeklyRent ? Number(form.property.weeklyRent) : null, monthlyRent: form.property.monthlyRent ? Number(form.property.monthlyRent) : null, reservationFee: form.property.reservationFee ? Number(form.property.reservationFee) : null, deposit: form.property.deposit ? Number(form.property.deposit) : null },
+      tenant: form.tenant, agent: form.agent, notes: form.notes, emailText,
+      files: files.map(f => ({ name: f.name, type: f.type }))
+    });
+    onClose();
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
+      <div style={{ background:"#fff", borderRadius:16, width:"100%", maxWidth:580, maxHeight:"90vh", overflowY:"auto", padding:28, boxShadow:"0 25px 60px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <div>
+            <div style={{ fontSize:20, fontWeight:800, color:"#111" }}>{step === "input" ? "Add New Offer" : step === "parsing" ? "Reading Email…" : "Review & Save"}</div>
+            <div style={{ fontSize:13, color:"#9ca3af", marginTop:2 }}>{step === "input" ? "Paste the agent's confirmation email" : step === "parsing" ? "AI is extracting property details" : "Confirm details before saving"}</div>
+          </div>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#9ca3af" }}>✕</button>
+        </div>
+
+        {step === "input" && (
+          <div>
+            <FW label="Agent Confirmation Email (paste full text)">
+              <textarea value={emailText} onChange={e => setEmailText(e.target.value)} placeholder="Paste the full email here…" style={{ ...IS, minHeight:200, resize:"vertical", lineHeight:1.6 }} />
+            </FW>
+            {error && <div style={{ color:"#ef4444", fontSize:13, marginBottom:10 }}>{error}</div>}
+            <div style={{ display:"flex", gap:10, marginTop:4 }}>
+              <button onClick={handleParse} style={{ flex:1, padding:11, background:"#111", color:"#fff", border:"none", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>✨ Extract with AI</button>
+              <button onClick={() => setStep("review")} style={{ padding:"11px 16px", background:"#f3f4f6", color:"#374151", border:"none", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" }}>Fill Manually</button>
+            </div>
+          </div>
+        )}
+
+        {step === "parsing" && (
+          <div style={{ textAlign:"center", padding:"48px 0" }}>
+            <div style={{ fontSize:40, marginBottom:16, animation:"spin 1.5s linear infinite", display:"inline-block" }}>⚙️</div>
+            <div style={{ fontSize:15, color:"#6b7280" }}>Analysing email content…</div>
+            <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
+          </div>
+        )}
+
+        {step === "review" && (
+          <div>
+            {parsed && <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:10, padding:"10px 14px", marginBottom:16, fontSize:13, color:"#065f46" }}>✅ AI extracted details — please review and correct if needed.</div>}
+            <SH title="🏢 Property" />
+            <FW label="Address *"><input style={IS} value={form.property.address} onChange={e => updateField("property","address",e.target.value)} placeholder="e.g. 27 Clapham Place, 340A Clapham Road" /></FW>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <FW label="Postcode"><input style={IS} value={form.property.postcode} onChange={e => updateField("property","postcode",e.target.value)} placeholder="SW9 9FA" /></FW>
+              <FW label="Tenancy Type"><input style={IS} value={form.property.tenancyType} onChange={e => updateField("property","tenancyType",e.target.value)} placeholder="Monthly Rolling" /></FW>
+              <FW label="Weekly Rent (£)"><input style={IS} type="number" value={form.property.weeklyRent} onChange={e => updateField("property","weeklyRent",e.target.value)} placeholder="595" /></FW>
+              <FW label="Monthly Rent (£)"><input style={IS} type="number" value={form.property.monthlyRent} onChange={e => updateField("property","monthlyRent",e.target.value)} placeholder="2277" /></FW>
+              <FW label="Start Date"><input style={IS} value={form.property.startDate} onChange={e => updateField("property","startDate",e.target.value)} placeholder="05.06.2026" /></FW>
+              <FW label="Reservation Fee (£)"><input style={IS} type="number" value={form.property.reservationFee} onChange={e => updateField("property","reservationFee",e.target.value)} placeholder="0" /></FW>
+            </div>
+            <FW label="Deposit (£)"><input style={IS} type="number" value={form.property.deposit} onChange={e => updateField("property","deposit",e.target.value)} placeholder="2627" /></FW>
+            <SH title="👤 Tenant" />
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <FW label="Name"><input style={IS} value={form.tenant.name} onChange={e => updateField("tenant","name",e.target.value)} placeholder="Full name" /></FW>
+              <FW label="Phone"><input style={IS} value={form.tenant.phone} onChange={e => updateField("tenant","phone",e.target.value)} placeholder="+44…" /></FW>
+            </div>
+            <FW label="Email"><input style={IS} value={form.tenant.email} onChange={e => updateField("tenant","email",e.target.value)} placeholder="tenant@example.com" /></FW>
+            <SH title="🏛 Agent" />
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <FW label="Agent Name"><input style={IS} value={form.agent.name} onChange={e => updateField("agent","name",e.target.value)} placeholder="Agent name" /></FW>
+              <FW label="Company"><input style={IS} value={form.agent.company} onChange={e => updateField("agent","company",e.target.value)} placeholder="CityZEN / Savills…" /></FW>
+              <FW label="Agent Email"><input style={IS} value={form.agent.email} onChange={e => updateField("agent","email",e.target.value)} placeholder="agent@example.com" /></FW>
+              <FW label="Agent Phone"><input style={IS} value={form.agent.phone} onChange={e => updateField("agent","phone",e.target.value)} placeholder="+44…" /></FW>
+            </div>
+            <SH title="📝 Notes" />
+            <FW label="Additional Notes">
+              <textarea style={{ ...IS, minHeight:70, resize:"vertical" }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes:e.target.value }))} placeholder="Guarantor needed, special conditions, etc." />
+            </FW>
+            <SH title="📎 Attachments" />
+            <label style={{ display:"block", border:"2px dashed #e5e7eb", borderRadius:10, padding:16, textAlign:"center", cursor:"pointer", color:"#9ca3af", fontSize:13 }}>
+              <input type="file" multiple accept="image/*,.pdf,.mp4,.mov" style={{ display:"none" }} onChange={e => setFiles(Array.from(e.target.files))} />
+              {files.length > 0 ? `${files.length} file(s) selected` : "📁 Upload photos, floor plans, PDFs or videos"}
+            </label>
+            {error && <div style={{ color:"#ef4444", fontSize:13, marginTop:10 }}>{error}</div>}
+            <div style={{ display:"flex", gap:10, marginTop:20 }}>
+              <button onClick={() => { setStep("input"); setError(""); }} style={{ padding:"11px 16px", background:"#f3f4f6", color:"#374151", border:"none", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" }}>← Back</button>
+              <button onClick={handleSave} style={{ flex:1, padding:11, background:"#111", color:"#fff", border:"none", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>Save Offer Record</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OfferCard({ offer, onClick }) {
+  const p = offer.property || {};
+  const weekly = p.weeklyRent ? `£${p.weeklyRent.toLocaleString()}/wk` : p.monthlyRent ? `£${p.monthlyRent.toLocaleString()}/mo` : null;
+  return (
+    <div onClick={onClick} style={{ background:"#fff", borderRadius:14, padding:"18px 20px", cursor:"pointer", border:"1px solid #f0f0f0", boxShadow:"0 1px 4px rgba(0,0,0,0.05)", transition:"all 0.15s", marginBottom:12 }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow="0 4px 20px rgba(0,0,0,0.1)"; e.currentTarget.style.transform="translateY(-1px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.05)"; e.currentTarget.style.transform=""; }}
+    >
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontWeight:700, fontSize:15, color:"#111", marginBottom:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.address || "Unknown Property"}</div>
+          <div style={{ fontSize:12, color:"#9ca3af", marginBottom:8 }}>{p.postcode}{p.postcode && offer.tenant?.name ? " · " : ""}{offer.tenant?.name}</div>
+          <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+            <StatusBadge status={offer.status} />
+            {weekly && <span style={{ fontSize:13, fontWeight:700, color:"#065f46" }}>{weekly}</span>}
+            {p.startDate && <span style={{ fontSize:12, color:"#9ca3af" }}>From {p.startDate}</span>}
+          </div>
+        </div>
+        {offer.agent?.company && <div style={{ fontSize:11, color:"#9ca3af", textAlign:"right", flexShrink:0 }}>{offer.agent.company}</div>}
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [offers, setOffers] = useState([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setOffers(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  function saveOffers(updated) {
+    setOffers(updated);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
+  }
+
+  function handleSave(offer)              { saveOffers([offer, ...offers]); }
+  function handleDelete(id)               { saveOffers(offers.filter(o => o.id !== id)); }
+  function handleEdit(updated)            { const n = offers.map(o => o.id === updated.id ? updated : o); saveOffers(n); setSelectedOffer(updated); }
+  function handleUpdateStatus(id, status) { const u = offers.map(o => o.id === id ? { ...o, status } : o); saveOffers(u); setSelectedOffer(o => o?.id === id ? { ...o, status } : o); }
+
+  const filtered = offers.filter(o => {
+    const matchStatus = filterStatus === "All" || o.status === filterStatus;
+    const q = search.toLowerCase();
+    const matchSearch = !q || [o.property?.address, o.property?.postcode, o.tenant?.name, o.agent?.company, o.agent?.name].some(v => v?.toLowerCase().includes(q));
+    return matchStatus && matchSearch;
+  });
+
+  const stats = {
+    total: offers.length,
+    live: offers.filter(o => o.status === "Live Tenancy").length,
+    totalWeekly: offers.filter(o => o.property?.weeklyRent && o.status === "Live Tenancy").reduce((s, o) => s + o.property.weeklyRent, 0),
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#f8f8f6", fontFamily:"'Georgia','Times New Roman',serif" }}>
+      <div style={{ background:"#111", color:"#fff", padding:"20px 24px 0" }}>
+        <div style={{ maxWidth:720, margin:"0 auto" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+            <div>
+              <div style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.03em" }}>Niko Relocation</div>
+              <div style={{ fontSize:12, color:"#9ca3af", marginTop:2, fontFamily:"monospace" }}>Offer Management System</div>
+            </div>
+            <button onClick={() => setShowAdd(true)} style={{ background:"#fff", color:"#111", border:"none", borderRadius:10, padding:"9px 18px", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>+ New Offer</button>
+          </div>
+          <div style={{ display:"flex", gap:24, paddingBottom:16, borderBottom:"1px solid #333" }}>
+            {[{ label:"Total Offers", value: stats.total }, { label:"Live Tenancies", value: stats.live }, { label:"Live Weekly Revenue", value: stats.totalWeekly ? `£${stats.totalWeekly.toLocaleString()}` : "—" }].map(s => (
+              <div key={s.label}><div style={{ fontSize:20, fontWeight:800 }}>{s.value}</div><div style={{ fontSize:11, color:"#6b7280", marginTop:1 }}>{s.label}</div></div>
+            ))}
+          </div>
+          <div style={{ display:"flex", gap:2, paddingTop:12, overflowX:"auto" }}>
+            {["All", ...Object.keys(STATUS_CONFIG)].map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)} style={{ padding:"6px 14px", borderRadius:"8px 8px 0 0", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:12, fontWeight:600, whiteSpace:"nowrap", background: filterStatus === s ? "#f8f8f6" : "transparent", color: filterStatus === s ? "#111" : "#9ca3af" }}>{s}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ maxWidth:720, margin:"0 auto", padding:"20px 24px" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by address, postcode, tenant or agent…" style={{ width:"100%", padding:"11px 16px", borderRadius:10, border:"1px solid #e5e7eb", fontSize:14, fontFamily:"inherit", outline:"none", marginBottom:16, background:"#fff" }} />
+        {filtered.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"64px 0", color:"#9ca3af" }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>🏠</div>
+            <div style={{ fontSize:16, fontWeight:600, marginBottom:6 }}>No offers yet</div>
+            <div style={{ fontSize:14 }}>Click <strong>+ New Offer</strong> and paste a confirmation email to get started</div>
+          </div>
+        ) : filtered.map(o => <OfferCard key={o.id} offer={o} onClick={() => setSelectedOffer(o)} />)}
+      </div>
+      {showAdd && <AddOfferModal onClose={() => setShowAdd(false)} onSave={handleSave} />}
+      {selectedOffer && <OfferModal offer={selectedOffer} onClose={() => setSelectedOffer(null)} onUpdateStatus={handleUpdateStatus} onDelete={handleDelete} onEdit={handleEdit} />}
+    </div>
+  );
 }
