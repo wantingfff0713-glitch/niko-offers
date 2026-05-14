@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "niko_offers";
 
-// ── Call our own backend (key stays server-side) ───────────────────────────
 async function parseEmailWithAI(emailText) {
   const response = await fetch("/api/parse-email", {
     method: "POST",
@@ -13,7 +12,6 @@ async function parseEmailWithAI(emailText) {
   return response.json();
 }
 
-// ── Status config ─────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   "Offer Accepted":  { bg: "#d1fae5", color: "#065f46", dot: "#10b981" },
   "References":      { bg: "#fef3c7", color: "#92400e", dot: "#f59e0b" },
@@ -53,7 +51,6 @@ function Section({ icon, title, children }) {
   );
 }
 
-// ── Offer Detail Modal ────────────────────────────────────────────────────
 function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const p = offer.property || {};
@@ -63,7 +60,6 @@ function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
       <div style={{ background:"#fff", borderRadius:16, width:"100%", maxWidth:540, maxHeight:"88vh", overflowY:"auto", padding:"28px", boxShadow:"0 25px 60px rgba(0,0,0,0.25)" }} onClick={e => e.stopPropagation()}>
-
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
           <div>
             <div style={{ fontSize:18, fontWeight:800, color:"#111827", lineHeight:1.3 }}>{p.address || "Unknown Address"}</div>
@@ -71,12 +67,10 @@ function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#9ca3af" }}>✕</button>
         </div>
-
         <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
           <StatusBadge status={offer.status} />
           <span style={{ fontSize:12, color:"#9ca3af", alignSelf:"center" }}>Added {new Date(offer.createdAt).toLocaleDateString("en-GB")}</span>
         </div>
-
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
           {[
             { label:"Weekly Rent",  value: p.weeklyRent  ? `£${p.weeklyRent.toLocaleString()}`  : null },
@@ -89,31 +83,27 @@ function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
             </div>
           ) : null)}
         </div>
-
         <Section icon="🏢" title="Property">
           <Field label="Tenancy Type"    value={p.tenancyType} />
           <Field label="Reservation Fee" value={p.reservationFee ? `£${p.reservationFee.toLocaleString()}` : null} />
+          <Field label="Deposit"         value={p.deposit ? `£${p.deposit.toLocaleString()}` : null} />
         </Section>
-
         <Section icon="👤" title="Tenant">
           <Field label="Name"  value={t.name} />
           <Field label="Email" value={t.email} mono />
           <Field label="Phone" value={t.phone} />
         </Section>
-
         <Section icon="🏛" title="Agent">
           <Field label="Agent Name" value={a.name} />
           <Field label="Company"    value={a.company} />
           <Field label="Email"      value={a.email} mono />
           <Field label="Phone"      value={a.phone} />
         </Section>
-
         {offer.notes && (
           <Section icon="📝" title="Notes">
             <div style={{ fontSize:13, color:"#374151", lineHeight:1.6 }}>{offer.notes}</div>
           </Section>
         )}
-
         {offer.files && offer.files.length > 0 && (
           <Section icon="📎" title={`Attachments (${offer.files.length})`}>
             <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
@@ -123,7 +113,6 @@ function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
             </div>
           </Section>
         )}
-
         <div style={{ marginTop:16 }}>
           <div style={{ fontSize:12, fontWeight:700, color:"#6b7280", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.07em" }}>Update Status</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
@@ -137,7 +126,6 @@ function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
             ))}
           </div>
         </div>
-
         <div style={{ marginTop:16, borderTop:"1px solid #f3f4f6", paddingTop:14 }}>
           {!confirmDelete ? (
             <button onClick={() => setConfirmDelete(true)} style={{ fontSize:13, color:"#ef4444", background:"none", border:"none", cursor:"pointer" }}>Delete this record</button>
@@ -154,7 +142,11 @@ function OfferModal({ offer, onClose, onUpdateStatus, onDelete }) {
   );
 }
 
-// ── Add Offer Modal ───────────────────────────────────────────────────────
+const IS = { width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid #e5e7eb", fontSize:13, fontFamily:"inherit", outline:"none" };
+const LS = { fontSize:11, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.07em", display:"block", marginBottom:4 };
+function FW({ label, children }) { return <div style={{ marginBottom:10 }}><label style={LS}>{label}</label>{children}</div>; }
+function SH({ title }) { return <div style={{ fontWeight:700, fontSize:13, color:"#111", margin:"16px 0 10px", paddingBottom:6, borderBottom:"2px solid #f3f4f6" }}>{title}</div>; }
+
 function AddOfferModal({ onClose, onSave }) {
   const [step, setStep] = useState("input");
   const [emailText, setEmailText] = useState("");
@@ -162,7 +154,7 @@ function AddOfferModal({ onClose, onSave }) {
   const [error, setError] = useState("");
   const [files, setFiles] = useState([]);
   const [form, setForm] = useState({
-    property: { address:"", postcode:"", weeklyRent:"", monthlyRent:"", startDate:"", tenancyType:"Monthly Rolling", reservationFee:"" },
+    property: { address:"", postcode:"", weeklyRent:"", monthlyRent:"", startDate:"", tenancyType:"Monthly Rolling", reservationFee:"", deposit:"" },
     tenant:   { name:"", email:"", phone:"" },
     agent:    { name:"", company:"", email:"", phone:"" },
     notes: ""
@@ -183,6 +175,7 @@ function AddOfferModal({ onClose, onSave }) {
           startDate:      result.property?.startDate      || "",
           tenancyType:    result.property?.tenancyType    || "Monthly Rolling",
           reservationFee: result.property?.reservationFee || "",
+          deposit:        result.property?.deposit        || "",
         },
         tenant: { name: result.tenant?.name || "", email: result.tenant?.email || "", phone: result.tenant?.phone || "" },
         agent:  { name: result.agent?.name  || "", company: result.agent?.company || "", email: result.agent?.email || "", phone: result.agent?.phone || "" },
@@ -210,6 +203,7 @@ function AddOfferModal({ onClose, onSave }) {
         weeklyRent:     form.property.weeklyRent     ? Number(form.property.weeklyRent)     : null,
         monthlyRent:    form.property.monthlyRent    ? Number(form.property.monthlyRent)    : null,
         reservationFee: form.property.reservationFee ? Number(form.property.reservationFee) : null,
+        deposit:        form.property.deposit        ? Number(form.property.deposit)        : null,
       },
       tenant: form.tenant,
       agent:  form.agent,
@@ -220,30 +214,21 @@ function AddOfferModal({ onClose, onSave }) {
     onClose();
   }
 
-  const IS = { width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid #e5e7eb", fontSize:13, fontFamily:"inherit", outline:"none" };
-  const LS = { fontSize:11, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.07em", display:"block", marginBottom:4 };
-  const FW = ({ label, children }) => <div style={{ marginBottom:10 }}><label style={LS}>{label}</label>{children}</div>;
-  const SH = ({ title }) => <div style={{ fontWeight:700, fontSize:13, color:"#111", margin:"16px 0 10px", paddingBottom:6, borderBottom:"2px solid #f3f4f6" }}>{title}</div>;
-
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
       <div style={{ background:"#fff", borderRadius:16, width:"100%", maxWidth:580, maxHeight:"90vh", overflowY:"auto", padding:28, boxShadow:"0 25px 60px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
-
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <div>
             <div style={{ fontSize:20, fontWeight:800, color:"#111" }}>
               {step === "input" ? "Add New Offer" : step === "parsing" ? "Reading Email…" : "Review & Save"}
             </div>
             <div style={{ fontSize:13, color:"#9ca3af", marginTop:2 }}>
-              {step === "input"   ? "Paste the agent's confirmation email" :
-               step === "parsing" ? "AI is extracting property details" :
-                                    "Confirm details before saving"}
+              {step === "input" ? "Paste the agent's confirmation email" : step === "parsing" ? "AI is extracting property details" : "Confirm details before saving"}
             </div>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:"#9ca3af" }}>✕</button>
         </div>
 
-        {/* ── Input step ── */}
         {step === "input" && (
           <div>
             <FW label="Agent Confirmation Email (paste full text)">
@@ -253,17 +238,12 @@ function AddOfferModal({ onClose, onSave }) {
             </FW>
             {error && <div style={{ color:"#ef4444", fontSize:13, marginBottom:10 }}>{error}</div>}
             <div style={{ display:"flex", gap:10, marginTop:4 }}>
-              <button onClick={handleParse} style={{ flex:1, padding:11, background:"#111", color:"#fff", border:"none", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-                ✨ Extract with AI
-              </button>
-              <button onClick={() => setStep("review")} style={{ padding:"11px 16px", background:"#f3f4f6", color:"#374151", border:"none", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-                Fill Manually
-              </button>
+              <button onClick={handleParse} style={{ flex:1, padding:11, background:"#111", color:"#fff", border:"none", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>✨ Extract with AI</button>
+              <button onClick={() => setStep("review")} style={{ padding:"11px 16px", background:"#f3f4f6", color:"#374151", border:"none", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" }}>Fill Manually</button>
             </div>
           </div>
         )}
 
-        {/* ── Parsing step ── */}
         {step === "parsing" && (
           <div style={{ textAlign:"center", padding:"48px 0" }}>
             <div style={{ fontSize:40, marginBottom:16, animation:"spin 1.5s linear infinite", display:"inline-block" }}>⚙️</div>
@@ -272,7 +252,6 @@ function AddOfferModal({ onClose, onSave }) {
           </div>
         )}
 
-        {/* ── Review step ── */}
         {step === "review" && (
           <div>
             {parsed && (
@@ -280,33 +259,35 @@ function AddOfferModal({ onClose, onSave }) {
                 ✅ AI extracted details — please review and correct if needed.
               </div>
             )}
-
             <SH title="🏢 Property" />
             <FW label="Address *">
-              <input style={IS} value={form.property.address} onChange={e => updateField("property","address",e.target.value)} placeholder="e.g. 805 Neroli House, 14 Piazza Walk" />
+              <input style={IS} value={form.property.address} onChange={e => updateField("property","address",e.target.value)} placeholder="e.g. 27 Clapham Place, 340A Clapham Road" />
             </FW>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-              <FW label="Postcode"><input style={IS} value={form.property.postcode}    onChange={e => updateField("property","postcode",e.target.value)}    placeholder="E1 8ZJ" /></FW>
+              <FW label="Postcode"><input style={IS} value={form.property.postcode} onChange={e => updateField("property","postcode",e.target.value)} placeholder="SW9 9FA" /></FW>
               <FW label="Tenancy Type"><input style={IS} value={form.property.tenancyType} onChange={e => updateField("property","tenancyType",e.target.value)} placeholder="Monthly Rolling" /></FW>
-              <FW label="Weekly Rent (£)"><input style={IS} type="number" value={form.property.weeklyRent}     onChange={e => updateField("property","weeklyRent",e.target.value)}     placeholder="595" /></FW>
-              <FW label="Monthly Rent (£)"><input style={IS} type="number" value={form.property.monthlyRent}    onChange={e => updateField("property","monthlyRent",e.target.value)}    placeholder="2578" /></FW>
-              <FW label="Start Date"><input style={IS} value={form.property.startDate}    onChange={e => updateField("property","startDate",e.target.value)}    placeholder="4 July 2026" /></FW>
-              <FW label="Reservation Fee (£)"><input style={IS} type="number" value={form.property.reservationFee} onChange={e => updateField("property","reservationFee",e.target.value)} placeholder="595" /></FW>
+              <FW label="Weekly Rent (£)"><input style={IS} type="number" value={form.property.weeklyRent} onChange={e => updateField("property","weeklyRent",e.target.value)} placeholder="595" /></FW>
+              <FW label="Monthly Rent (£)"><input style={IS} type="number" value={form.property.monthlyRent} onChange={e => updateField("property","monthlyRent",e.target.value)} placeholder="2277" /></FW>
+              <FW label="Start Date"><input style={IS} value={form.property.startDate} onChange={e => updateField("property","startDate",e.target.value)} placeholder="05.06.2026" /></FW>
+              <FW label="Reservation Fee (£)"><input style={IS} type="number" value={form.property.reservationFee} onChange={e => updateField("property","reservationFee",e.target.value)} placeholder="0" /></FW>
             </div>
+            <FW label="Deposit (£)">
+              <input style={IS} type="number" value={form.property.deposit} onChange={e => updateField("property","deposit",e.target.value)} placeholder="2627" />
+            </FW>
 
             <SH title="👤 Tenant" />
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-              <FW label="Name"><input style={IS} value={form.tenant.name}  onChange={e => updateField("tenant","name",e.target.value)}  placeholder="Full name" /></FW>
+              <FW label="Name"><input style={IS} value={form.tenant.name} onChange={e => updateField("tenant","name",e.target.value)} placeholder="Full name" /></FW>
               <FW label="Phone"><input style={IS} value={form.tenant.phone} onChange={e => updateField("tenant","phone",e.target.value)} placeholder="+44…" /></FW>
             </div>
             <FW label="Email"><input style={IS} value={form.tenant.email} onChange={e => updateField("tenant","email",e.target.value)} placeholder="tenant@example.com" /></FW>
 
             <SH title="🏛 Agent" />
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-              <FW label="Agent Name"><input style={IS} value={form.agent.name}    onChange={e => updateField("agent","name",e.target.value)}    placeholder="Agent name" /></FW>
-              <FW label="Company"><input style={IS} value={form.agent.company} onChange={e => updateField("agent","company",e.target.value)} placeholder="Savills / Knight Frank…" /></FW>
-              <FW label="Agent Email"><input style={IS} value={form.agent.email}   onChange={e => updateField("agent","email",e.target.value)}   placeholder="agent@savills.com" /></FW>
-              <FW label="Agent Phone"><input style={IS} value={form.agent.phone}   onChange={e => updateField("agent","phone",e.target.value)}   placeholder="+44…" /></FW>
+              <FW label="Agent Name"><input style={IS} value={form.agent.name} onChange={e => updateField("agent","name",e.target.value)} placeholder="Agent name" /></FW>
+              <FW label="Company"><input style={IS} value={form.agent.company} onChange={e => updateField("agent","company",e.target.value)} placeholder="CityZEN / Savills…" /></FW>
+              <FW label="Agent Email"><input style={IS} value={form.agent.email} onChange={e => updateField("agent","email",e.target.value)} placeholder="agent@example.com" /></FW>
+              <FW label="Agent Phone"><input style={IS} value={form.agent.phone} onChange={e => updateField("agent","phone",e.target.value)} placeholder="+44…" /></FW>
             </div>
 
             <SH title="📝 Notes" />
@@ -321,7 +302,6 @@ function AddOfferModal({ onClose, onSave }) {
             </label>
 
             {error && <div style={{ color:"#ef4444", fontSize:13, marginTop:10 }}>{error}</div>}
-
             <div style={{ display:"flex", gap:10, marginTop:20 }}>
               <button onClick={() => { setStep("input"); setError(""); }} style={{ padding:"11px 16px", background:"#f3f4f6", color:"#374151", border:"none", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" }}>← Back</button>
               <button onClick={handleSave} style={{ flex:1, padding:11, background:"#111", color:"#fff", border:"none", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer" }}>Save Offer Record</button>
@@ -333,7 +313,6 @@ function AddOfferModal({ onClose, onSave }) {
   );
 }
 
-// ── Offer Card ────────────────────────────────────────────────────────────
 function OfferCard({ offer, onClick }) {
   const p = offer.property || {};
   const weekly = p.weeklyRent ? `£${p.weeklyRent.toLocaleString()}/wk` : p.monthlyRent ? `£${p.monthlyRent.toLocaleString()}/mo` : null;
@@ -358,7 +337,6 @@ function OfferCard({ offer, onClick }) {
   );
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
   const [offers, setOffers] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -378,9 +356,9 @@ export default function App() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
   }
 
-  function handleSave(offer)               { saveOffers([offer, ...offers]); }
-  function handleDelete(id)                { saveOffers(offers.filter(o => o.id !== id)); }
-  function handleUpdateStatus(id, status)  {
+  function handleSave(offer)              { saveOffers([offer, ...offers]); }
+  function handleDelete(id)               { saveOffers(offers.filter(o => o.id !== id)); }
+  function handleUpdateStatus(id, status) {
     const updated = offers.map(o => o.id === id ? { ...o, status } : o);
     saveOffers(updated);
     setSelectedOffer(o => o?.id === id ? { ...o, status } : o);
@@ -394,15 +372,13 @@ export default function App() {
   });
 
   const stats = {
-    total:        offers.length,
-    live:         offers.filter(o => o.status === "Live Tenancy").length,
-    totalWeekly:  offers.filter(o => o.property?.weeklyRent && o.status === "Live Tenancy").reduce((s, o) => s + o.property.weeklyRent, 0),
+    total:       offers.length,
+    live:        offers.filter(o => o.status === "Live Tenancy").length,
+    totalWeekly: offers.filter(o => o.property?.weeklyRent && o.status === "Live Tenancy").reduce((s, o) => s + o.property.weeklyRent, 0),
   };
 
   return (
     <div style={{ minHeight:"100vh", background:"#f8f8f6", fontFamily:"'Georgia','Times New Roman',serif" }}>
-
-      {/* Header */}
       <div style={{ background:"#111", color:"#fff", padding:"20px 24px 0" }}>
         <div style={{ maxWidth:720, margin:"0 auto" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
@@ -414,12 +390,11 @@ export default function App() {
               + New Offer
             </button>
           </div>
-
           <div style={{ display:"flex", gap:24, paddingBottom:16, borderBottom:"1px solid #333" }}>
             {[
-              { label:"Total Offers",         value: stats.total },
-              { label:"Live Tenancies",        value: stats.live },
-              { label:"Live Weekly Revenue",   value: stats.totalWeekly ? `£${stats.totalWeekly.toLocaleString()}` : "—" },
+              { label:"Total Offers",       value: stats.total },
+              { label:"Live Tenancies",      value: stats.live },
+              { label:"Live Weekly Revenue", value: stats.totalWeekly ? `£${stats.totalWeekly.toLocaleString()}` : "—" },
             ].map(s => (
               <div key={s.label}>
                 <div style={{ fontSize:20, fontWeight:800 }}>{s.value}</div>
@@ -427,7 +402,6 @@ export default function App() {
               </div>
             ))}
           </div>
-
           <div style={{ display:"flex", gap:2, paddingTop:12, overflowX:"auto" }}>
             {["All", ...Object.keys(STATUS_CONFIG)].map(s => (
               <button key={s} onClick={() => setFilterStatus(s)} style={{
@@ -440,13 +414,10 @@ export default function App() {
           </div>
         </div>
       </div>
-
-      {/* Body */}
       <div style={{ maxWidth:720, margin:"0 auto", padding:"20px 24px" }}>
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by address, postcode, tenant or agent…"
           style={{ width:"100%", padding:"11px 16px", borderRadius:10, border:"1px solid #e5e7eb", fontSize:14, fontFamily:"inherit", outline:"none", marginBottom:16, background:"#fff" }} />
-
         {filtered.length === 0 ? (
           <div style={{ textAlign:"center", padding:"64px 0", color:"#9ca3af" }}>
             <div style={{ fontSize:40, marginBottom:12 }}>🏠</div>
@@ -457,7 +428,6 @@ export default function App() {
           filtered.map(o => <OfferCard key={o.id} offer={o} onClick={() => setSelectedOffer(o)} />)
         )}
       </div>
-
       {showAdd && <AddOfferModal onClose={() => setShowAdd(false)} onSave={handleSave} />}
       {selectedOffer && (
         <OfferModal offer={selectedOffer} onClose={() => setSelectedOffer(null)} onUpdateStatus={handleUpdateStatus} onDelete={handleDelete} />
